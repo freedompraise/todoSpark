@@ -1,0 +1,652 @@
+<html><head><base href="https://cdn.example.com/">
+<title>Daily Task Generator &amp; Tracker with Rewards</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.3.3/pixi.min.js"></script>
+<style>
+:root {
+  --primary: #2c3e50;
+  --secondary: #3498db;
+  --success: #2ecc71;
+  --background: #f5f6fa;
+  --text: #2c3e50;
+
+  /* Dark theme variables */
+  --dark-primary: #ecf0f1;
+  --dark-secondary: #3498db;
+  --dark-success: #2ecc71;
+  --dark-background: #2c3e50;
+  --dark-surface: #34495e;
+  --dark-text: #ecf0f1;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--background);
+  margin: 0;
+  padding: 20px;
+  line-height: 1.6;
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+body.dark-mode {
+  --background: var(--dark-background);
+  --text: var(--dark-text);
+  --primary: var(--dark-primary);
+  color: var(--dark-text);
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: var(--text);
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(180deg);
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.dark-mode .container {
+  background: var(--dark-surface);
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.task-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.task-form input {
+  flex: 1;
+  padding: 0.8rem;
+  border: 2px solid #eee;
+  border-radius: 5px;
+  font-size: 1rem;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .task-form input {
+  background: var(--dark-surface);
+  border-color: #4a6278;
+  color: var(--dark-text);
+}
+
+.btn {
+  background: var(--secondary);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s all;
+}
+
+.btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  margin-bottom: 0.5rem;
+  border-radius: 5px;
+  transition: 0.3s all;
+}
+
+.dark-mode .task-item {
+  background: #2c3e50;
+}
+
+.task-item:hover {
+  transform: translateX(5px);
+}
+
+.task-item.completed {
+  background: #e8f5e9;
+}
+
+.dark-mode .task-item.completed {
+  background: #2d4a3e;
+}
+
+.task-checkbox {
+  margin-right: 1rem;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.task-text {
+  flex: 1;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #eee;
+  border-radius: 5px;
+  margin: 2rem 0;
+  overflow: hidden;
+}
+
+.dark-mode .progress-bar {
+  background: #4a6278;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--success);
+  width: 0%;
+  transition: 0.3s width;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .stats {
+  background: #2c3e50;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.stat-label {
+  color: #666;
+}
+
+.dark-mode .stat-label {
+  color: #a8b6c3;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.task-edit-btn,
+.task-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.task-edit-btn:hover,
+.task-delete-btn:hover {
+  transform: scale(1.1);
+}
+
+.task-input {
+  flex: 1;
+  padding: 0.3rem;
+  border: 1px solid var(--secondary);
+  border-radius: 3px;
+  font-size: 1rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+.rewards-center {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 5px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .rewards-center {
+  background: #2c3e50;
+}
+
+.points-display {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.game-container {
+  width: 100%;
+  height: 400px;
+  background: #87CEEB;
+  border-radius: 5px;
+  margin: 1rem 0;
+  display: none;
+}
+
+.unlock-btn {
+  background: var(--success);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  margin: 1rem;
+  transition: all 0.3s ease;
+}
+
+.unlock-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.unlock-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()">&#x1f313;</button>
+<div class="container">
+  <div class="header">
+    <h1>Daily Task Generator &amp; Tracker</h1>
+    <p>Stay organized and track your progress</p>
+  </div>
+
+  <div class="task-form">
+    <input type="text" id="taskInput" placeholder="Enter a new task...">
+    <button class="btn" onclick="addTask()">Add Task</button>
+    <button class="btn" onclick="generateTask()">Generate Random Task</button>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <ul class="task-list" id="taskList">
+  </ul>
+
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-value" id="totalTasks">0</div>
+      <div class="stat-label">Total Tasks</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="completedTasks">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="completionRate">0%</div>
+      <div class="stat-label">Completion Rate</div>
+    </div>
+  </div>
+
+  <div class="rewards-center">
+    <h2>Rewards Center</h2>
+    <div class="points-display">
+      <span id="pointsDisplay">0</span> Points
+    </div>
+    <button class="unlock-btn" id="unlockBtn" onclick="unlockGame()" disabled>
+      Unlock Game (100 points)
+    </button>
+    <div id="gameContainer" class="game-container"></div>
+  </div>
+</div>
+
+<script>
+const tasks = [];
+const randomTasks = ["Take a 15-minute walk", "Read 10 pages of a book", "Meditate for 5 minutes", "Do 10 push-ups", "Clean your desk", "Write in your journal", "Practice a new skill for 20 minutes", "Call a friend or family member", "Organize your email inbox", "Drink 8 glasses of water"];
+let points = 0;
+let gameApp = null;
+let gameSpeed = 5;
+let isJumping = false;
+let jumpVelocity = 0;
+const GRAVITY = 0.8;
+const JUMP_FORCE = -15;
+const GROUND_Y = 350; // Position for ground level
+let obstacles = [];
+let gameScore = 0;
+let animationFrame;
+const POINTS_PER_TASK = 10;
+const GAME_COST = 100;
+
+function toggleTheme() {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('darkMode', isDark);
+}
+if (localStorage.getItem('darkMode') === 'true') {}
+
+function addTask(taskText = '') {
+  const input = document.getElementById('taskInput');
+  const text = taskText || input.value.trim();
+  if (text) {
+    const task = {
+      id: Date.now(),
+      text: text,
+      completed: false,
+      timestamp: new Date()
+    };
+    tasks.push(task);
+    renderTasks();
+    updateStats();
+    input.value = '';
+  }
+}
+
+function generateTask() {
+  const randomIndex = Math.floor(Math.random() * randomTasks.length);
+  addTask(randomTasks[randomIndex]);
+}
+
+function toggleTask(id) {
+  const taskElement = document.querySelector(`[data-task-id="${id}"]`);
+  if (taskElement.querySelector('.task-input')) return;
+  const task = tasks.find(t => t.id === id);
+  if (task) {
+    const wasCompleted = task.completed;
+    task.completed = !task.completed;
+    if (!wasCompleted && task.completed) {
+      points += POINTS_PER_TASK;
+      updatePoints();
+    } else if (wasCompleted && !task.completed) {
+      points -= POINTS_PER_TASK;
+      updatePoints();
+    }
+    renderTasks();
+    updateStats();
+  }
+}
+
+function renderTasks() {
+  const taskList = document.getElementById('taskList');
+  taskList.innerHTML = '';
+  tasks.forEach(task => {
+    const li = document.createElement('li');
+    li.className = `task-item ${task.completed ? 'completed' : ''}`;
+    li.setAttribute('data-task-id', task.id);
+    li.innerHTML = `
+      <input type="checkbox" class="task-checkbox" 
+        ${task.completed ? 'checked' : ''} 
+        onclick="toggleTask(${task.id})">
+      <span class="task-text">${task.text}</span>
+      <div class="task-actions">
+        <button class="task-edit-btn" onclick="editTask(${task.id})">✏️</button>
+        <button class="task-delete-btn" onclick="deleteTask(${task.id})">🗑️</button>
+      </div>
+    `;
+    taskList.appendChild(li);
+  });
+}
+
+function updateStats() {
+  const totalTasks = tasks.length;
+  const completed = tasks.filter(t => t.completed).length;
+  const rate = totalTasks ? Math.round(completed / totalTasks * 100) : 0;
+  document.getElementById('totalTasks').textContent = totalTasks;
+  document.getElementById('completedTasks').textContent = completed;
+  document.getElementById('completionRate').textContent = `${rate}%`;
+  document.getElementById('progressFill').style.width = `${rate}%`;
+}
+
+function updatePoints() {
+  document.getElementById('pointsDisplay').textContent = points;
+  document.getElementById('unlockBtn').disabled = points < GAME_COST;
+}
+
+function unlockGame() {
+  if (points >= GAME_COST) {
+    points -= GAME_COST;
+    updatePoints();
+    initGame();
+  }
+}
+
+function initGame() {
+  const gameContainer = document.getElementById('gameContainer');
+  gameContainer.style.display = 'block';
+  
+  gameApp = new PIXI.Application({
+    width: gameContainer.offsetWidth,
+    height: gameContainer.offsetHeight,
+    backgroundColor: 0x87CEEB
+  });
+  gameContainer.appendChild(gameApp.view);
+
+  // Create dinosaur
+  const dino = new PIXI.Graphics();
+  dino.beginFill(0x333333);
+  dino.drawRect(0, 0, 40, 60);
+  dino.endFill();
+  dino.x = 50;
+  dino.y = GROUND_Y;
+  gameApp.stage.addChild(dino);
+
+  // Create ground
+  const ground = new PIXI.Graphics();
+  ground.beginFill(0x654321);
+  ground.drawRect(0, GROUND_Y + 60, gameApp.screen.width, 40);
+  ground.endFill();
+  gameApp.stage.addChild(ground);
+
+  // Score text
+  const scoreText = new PIXI.Text('Score: 0', {
+    fontFamily: 'Arial',
+    fontSize: 24,
+    fill: 0x000000
+  });
+  scoreText.x = 20;
+  scoreText.y = 20;
+  gameApp.stage.addChild(scoreText);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !isJumping) {
+      isJumping = true;
+      jumpVelocity = JUMP_FORCE;
+    }
+  });
+
+  function spawnObstacle() {
+    const obstacle = new PIXI.Graphics();
+    obstacle.beginFill(0x006400);
+    obstacle.drawRect(0, 0, 20, 40);
+    obstacle.endFill();
+    obstacle.x = gameApp.screen.width;
+    obstacle.y = GROUND_Y + 20;
+    gameApp.stage.addChild(obstacle);
+    obstacles.push(obstacle);
+  }
+
+  function gameLoop() {
+    // Update dinosaur position
+    if (isJumping) {
+      dino.y += jumpVelocity;
+      jumpVelocity += GRAVITY;
+      
+      if (dino.y >= GROUND_Y) {
+        dino.y = GROUND_Y;
+        isJumping = false;
+        jumpVelocity = 0;
+      }
+    }
+
+    // Spawn obstacles
+    if (Math.random() < 0.02) {
+      spawnObstacle();
+    }
+
+    // Update obstacles
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      obstacles[i].x -= gameSpeed;
+
+      // Check collision
+      if (checkCollision(dino, obstacles[i])) {
+        gameOver();
+        return;
+      }
+
+      // Remove off-screen obstacles
+      if (obstacles[i].x < -40) {
+        gameApp.stage.removeChild(obstacles[i]);
+        obstacles.splice(i, 1);
+      }
+    }
+
+    // Update score and speed
+    gameScore++;
+    gameSpeed += 0.001;
+    scoreText.text = `Score: ${Math.floor(gameScore/10)}`;
+
+    animationFrame = requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+}
+
+function checkCollision(rect1, rect2) {
+  return rect1.x < rect2.x + rect2.width &&
+         rect1.x + rect1.width > rect2.x &&
+         rect1.y < rect2.y + rect2.height &&
+         rect1.y + rect1.height > rect2.y;
+}
+
+function gameOver() {
+  cancelAnimationFrame(animationFrame);
+  obstacles.forEach(obstacle => gameApp.stage.removeChild(obstacle));
+  obstacles = [];
+  gameSpeed = 5;
+  gameScore = 0;
+  
+  const gameOverText = new PIXI.Text('Game Over!\nPress Space to restart', {
+    fontFamily: 'Arial',
+    fontSize: 36,
+    fill: 0xFF0000,
+    align: 'center'
+  });
+  gameOverText.x = gameApp.screen.width / 2 - gameOverText.width / 2;
+  gameOverText.y = gameApp.screen.height / 2 - gameOverText.height / 2;
+  gameApp.stage.addChild(gameOverText);
+
+  function restartHandler(e) {
+    if (e.code === 'Space') {
+      gameApp.stage.removeChild(gameOverText);
+      window.removeEventListener('keydown', restartHandler);
+      gameLoop();
+    }
+  }
+  
+  window.addEventListener('keydown', restartHandler);
+}
+
+function deleteTask(id) {
+  const index = tasks.findIndex(t => t.id === id);
+  if (index !== -1) {
+    if (tasks[index].completed) {
+      points -= POINTS_PER_TASK;
+      updatePoints();
+    }
+    tasks.splice(index, 1);
+    renderTasks();
+    updateStats();
+  }
+}
+
+function editTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const taskElement = document.querySelector(`[data-task-id="${id}"]`);
+  const textElement = taskElement.querySelector('.task-text');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'task-input';
+  input.value = task.text;
+  textElement.replaceWith(input);
+  input.focus();
+  input.addEventListener('blur', () => finishEditing(id, input));
+  input.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      input.blur();
+    }
+  });
+}
+
+function finishEditing(id, input) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const newText = input.value.trim();
+  if (newText) {
+    task.text = newText;
+  }
+  renderTasks();
+}
+
+document.getElementById('taskInput').addEventListener('keypress', function (e) {
+  if (e.key === 'Enter') {
+    addTask();
+  }
+});
+
+addTask("Start your day with a healthy breakfast");
+addTask("Review your goals for the week");
+addTask("Plan tomorrow's schedule");
+</script>
+</body></html>
